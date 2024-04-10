@@ -1,3 +1,9 @@
+## unreleased
+
+### Added
+
+- Allow to report time in hours (#205, @gpetiot)
+
 ## 3.1.0
 
 ### Added

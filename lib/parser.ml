@@ -39,10 +39,12 @@ module Warning = struct
           KR.Heading.pp kr
     | Invalid_time { kr; entry } ->
         Fmt.pf ppf
-          "In objective \"%a\":@ Invalid time entry %S found. Format is '- \
-           @@eng1 (x days), @@eng2 (y days)'@ where x and y must be divisible \
-           by 0.125"
-          KR.Heading.pp kr entry
+          "In objective \"%a\":@ Invalid time entry %S found.@\n\
+          \ Accepted formats are:@\n\
+          \ - '@@username (X days)' where X must be a multiple of 0.125@\n\
+          \ - '@@username (X hours)' where X must be a multiple of 1@\n\
+          \ Multiple time entries must be comma-separated." KR.Heading.pp kr
+          entry
     | Multiple_time_entries kr ->
         Fmt.pf ppf
           "In objective \"%a\":@ Multiple time entries found. Only one time \
@@ -122,14 +124,10 @@ let time_entry_regexp =
     let without_int_part = seq [ char '.'; digits ] in
     group (alt [ with_int_part; without_int_part ])
   in
-  let time_unit = group (alt [ str "day" ]) in
-  let time = seq [ number; rep space; time_unit; opt (char 's') ] in
+  let units = [ "d"; "day"; "days"; "h"; "hour"; "hours" ] in
+  let time_unit = group (alt @@ List.map str units) in
+  let time = seq [ number; rep space; time_unit ] in
   compile @@ seq [ start; user; rep space; char '('; time; char ')'; stop ]
-
-let check_time unit time =
-  match unit with
-  | Time.Unit.Day when Float.is_integer @@ Float.div time 0.125 -> Some ()
-  | _ -> None
 
 let dump_elt ppf = function
   | KR_heading x -> Fmt.pf ppf "KR %a" KR.Heading.pp x
@@ -180,9 +178,7 @@ let kr ~project ~objective = function
                       let* s_time = Re.Group.get_opt grp 2 in
                       let* f_time = Float.of_string_opt s_time in
                       let* s_unit = Re.Group.get_opt grp 3 in
-                      let* t_unit = Time.Unit.of_string s_unit in
-                      let* () = check_time t_unit f_time in
-                      let time = { Time.unit = t_unit; data = f_time } in
+                      let* time = Time.of_string f_time s_unit in
                       Some (user, time)
                     with
                     | Some x -> Some x
