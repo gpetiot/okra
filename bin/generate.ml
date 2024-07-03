@@ -148,18 +148,23 @@ let write_and_commit ~repo ~week ~year ~user pp =
       v admin_dir / "weekly" / Fmt.str "%4d" year / Fmt.str "%02i" week / user
       |> add_ext "md")
   in
+  let filename = Fpath.to_string file in
   let* () = Bos.OS.File.delete file in
   let* () = Bos.OS.File.writef file "%a%!" pp () in
   let editor = editor () in
   let* () = Bos.OS.Cmd.run @@ Bos.Cmd.(v editor % p file) in
-  let* res = Bos.OS.File.with_ic file (fun ic () -> Okra.Lint.lint ic) () in
+  let* res =
+    Bos.OS.File.with_ic file (fun ic () -> Okra.Lint.lint ~filename ic) ()
+  in
   let* () =
     Result.map_error
       (fun errors ->
         List.iter
-          (fun e ->
-            List.iter print_endline
-              (Okra.Lint.short_messages_of_error (Fpath.to_string file) e))
+          (function
+            | #Okra.Lint.Error.t as e ->
+                Fmt.epr "%a\n" (Okra.Lint.Error.pp_short ~filename) e
+            | #Okra.Lint.Warning.t as w ->
+                Fmt.epr "%a\n" (Okra.Lint.Warning.pp_short ~filename) w)
           errors;
         `Msg "linting failed, aborting.")
       res
