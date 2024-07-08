@@ -155,18 +155,21 @@ let write ~repo ~week ~year ~user pp =
       |> add_ext "md")
   in
   let filename = Fpath.to_string file in
-  let* () = Bos.OS.File.delete file in
-  let* () = Bos.OS.File.writef file "%a%!" pp () in
-  let editor = editor () in
-  let* () = Bos.OS.Cmd.run @@ Bos.Cmd.(v editor % p file) in
-  let* res =
-    Bos.OS.File.with_ic file (fun ic () -> Okra.Lint.lint ~filename ic) ()
-  in
-  Result.map_error
-    (fun errors ->
-      List.iter (print_error ~filename) errors;
-      `Msg "linting failed, aborting.")
-    res
+  let* file_exists = Bos.OS.File.exists file in
+  if file_exists then
+    Error (`Msg (Fmt.str "File %a already exists, aborting." Fpath.pp file))
+  else
+    let* () = Bos.OS.File.writef file "%a%!" pp () in
+    let editor = editor () in
+    let* () = Bos.OS.Cmd.run @@ Bos.Cmd.(v editor % p file) in
+    let* res =
+      Bos.OS.File.with_ic file (fun ic () -> Okra.Lint.lint ~filename ic) ()
+    in
+    Result.map_error
+      (fun errors ->
+        List.iter (print_error ~filename) errors;
+        `Msg "Linting failed, aborting.")
+      res
 
 let run_engineer ppf conf cal projects token no_activity no_links
     with_repositories user print_projects repo interactive =
