@@ -147,7 +147,7 @@ let print_error ~filename = function
   | #Okra.Lint.Warning.t as w ->
       Fmt.epr "%a\n" (Okra.Lint.Warning.pp_short ~filename) w
 
-let write ~repo ~week ~year ~user pp =
+let write_and_lint ~repo ~week ~year ~user pp =
   let* admin_dir = repo in
   let file =
     Fpath.(
@@ -240,7 +240,7 @@ let run_engineer ppf conf cal projects token no_activity no_links
       Fmt.(option pp_footer)
       (Conf.footer conf)
   in
-  if interactive then write ~repo ~week ~year ~user pp
+  if interactive then write_and_lint ~repo ~week ~year ~user pp
   else (
     pp ppf ();
     Ok ())
