@@ -141,6 +141,12 @@ let editor () =
   let ( or ) x y = Result.value x ~default:y in
   Bos.OS.Env.req_var "VISUAL" or Bos.OS.Env.req_var "EDITOR" or "vi"
 
+let print_error ~filename = function
+  | #Okra.Lint.Error.t as e ->
+      Fmt.epr "%a\n" (Okra.Lint.Error.pp_short ~filename) e
+  | #Okra.Lint.Warning.t as w ->
+      Fmt.epr "%a\n" (Okra.Lint.Warning.pp_short ~filename) w
+
 let write ~repo ~week ~year ~user pp =
   let* admin_dir = repo in
   let file =
@@ -158,13 +164,7 @@ let write ~repo ~week ~year ~user pp =
   in
   Result.map_error
     (fun errors ->
-      List.iter
-        (function
-          | #Okra.Lint.Error.t as e ->
-              Fmt.epr "%a\n" (Okra.Lint.Error.pp_short ~filename) e
-          | #Okra.Lint.Warning.t as w ->
-              Fmt.epr "%a\n" (Okra.Lint.Warning.pp_short ~filename) w)
-        errors;
+      List.iter (print_error ~filename) errors;
       `Msg "linting failed, aborting.")
     res
 
