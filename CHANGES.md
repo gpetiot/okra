@@ -1,3 +1,9 @@
+## unreleased
+
+### Added
+
+- Gen: add an `--interactive` option that will open the default editor with the generated content, then runs the lint after the user is done editing (#214, @gpetiot)
+
 ## 3.0.0
 
 ### Changed
