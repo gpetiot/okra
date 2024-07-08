@@ -163,7 +163,9 @@ let write_and_lint ~repo ~week ~year ~user pp =
     let editor = editor () in
     let* () = Bos.OS.Cmd.run @@ Bos.Cmd.(v editor % p file) in
     let* res =
-      Bos.OS.File.with_ic file (fun ic () -> Okra.Lint.lint ~filename ic) ()
+      Bos.OS.File.with_ic file
+        (fun ic () -> Okra.Lint.lint ~report_kind:Engineer ~filename ic)
+        ()
     in
     Result.map_error
       (fun errors ->
