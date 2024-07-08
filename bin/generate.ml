@@ -66,7 +66,7 @@ let interactive =
     Arg.info [ "interactive"; "i" ]
       ~doc:
         "Create the file containing the activity report, and open it for the \
-         user to edit. Upon close, commit the file."
+         user to edit. Upon close, lint the file."
   in
   Arg.value (Arg.flag info)
 
