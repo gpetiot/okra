@@ -141,7 +141,7 @@ let editor () =
   let ( or ) x y = Result.value x ~default:y in
   Bos.OS.Env.req_var "VISUAL" or Bos.OS.Env.req_var "EDITOR" or "vi"
 
-let write_and_commit ~repo ~week ~year ~user pp =
+let write ~repo ~week ~year ~user pp =
   let* admin_dir = repo in
   let file =
     Fpath.(
@@ -156,26 +156,17 @@ let write_and_commit ~repo ~week ~year ~user pp =
   let* res =
     Bos.OS.File.with_ic file (fun ic () -> Okra.Lint.lint ~filename ic) ()
   in
-  let* () =
-    Result.map_error
-      (fun errors ->
-        List.iter
-          (function
-            | #Okra.Lint.Error.t as e ->
-                Fmt.epr "%a\n" (Okra.Lint.Error.pp_short ~filename) e
-            | #Okra.Lint.Warning.t as w ->
-                Fmt.epr "%a\n" (Okra.Lint.Warning.pp_short ~filename) w)
-          errors;
-        `Msg "linting failed, aborting.")
-      res
-  in
-  let git_cmd = Bos.Cmd.(v "git" % "-C" % p (Fpath.v admin_dir)) in
-  let* () = Bos.OS.Cmd.run @@ Bos.Cmd.(git_cmd % "add" % p file) in
-  let msg = Format.sprintf "%s week %i" user week in
-  let* () =
-    Bos.OS.Cmd.run @@ Bos.Cmd.(git_cmd % "commit" % p file % "-m" % msg)
-  in
-  Ok ()
+  Result.map_error
+    (fun errors ->
+      List.iter
+        (function
+          | #Okra.Lint.Error.t as e ->
+              Fmt.epr "%a\n" (Okra.Lint.Error.pp_short ~filename) e
+          | #Okra.Lint.Warning.t as w ->
+              Fmt.epr "%a\n" (Okra.Lint.Warning.pp_short ~filename) w)
+        errors;
+      `Msg "linting failed, aborting.")
+    res
 
 let run_engineer ppf conf cal projects token no_activity no_links
     with_repositories user print_projects repo interactive =
@@ -246,7 +237,7 @@ let run_engineer ppf conf cal projects token no_activity no_links
       Fmt.(option pp_footer)
       (Conf.footer conf)
   in
-  if interactive then write_and_commit ~repo ~week ~year ~user pp
+  if interactive then write ~repo ~week ~year ~user pp
   else (
     pp ppf ();
     Ok ())
